@@ -1,40 +1,52 @@
-use strict;
-use Test::More 'no_plan';
-use Imager;
-use Imager::Color;
+use Test::More tests => 4;
 use Imager::QRCode;
+use Encode;
 
-my $qrcode01 = Imager::QRCode->new();
-my $image01 = $qrcode01->plot('test test test');
-ok(ref $image01 eq 'Imager', "new()");
+my @Tests = ( {
+    params => {},
+    result => qr/^$/,
+}, {
+    params => {
+        size          => 2,
+        margin        => 2,
+        version       => 1,
+        level         => 'M',
+        casesensitive => 1,
+        lightcolor    => Imager::Color->new(255, 255, 255),
+        darkcolor     => Imager::Color->new(0, 0, 0),
+    },
+    result => qr/^$/,
+}, {
+    params => {
+        size          => 2,
+        margin        => 2,
+        version       => 1,
+        level         => 'M',
+        casesensitive => 1,
+        mode          => '8-bit',
+        lightcolor    => Imager::Color->new(255, 255, 255),
+        darkcolor     => Imager::Color->new(0, 0, 0),
+    },
+    result => qr/^$/,
+}, {
+    params => {
+        size          => 2,
+        margin        => 2,
+        version       => 1,
+        level         => 'M',
+        casesensitive => 1,
+        mode          => 'invalid',
+        lightcolor    => Imager::Color->new(255, 255, 255),
+        darkcolor     => Imager::Color->new(0, 0, 0),
+    },
+    result => qr/^Invalid mode: XS error/,
+} );
 
-my $qrcode02 = Imager::QRCode->new(
-    size          => 2,
-    margin        => 2,
-    version       => 1,
-    level         => 'M',
-    casesensitive => 1,
-    lightcolor    => Imager::Color->new(255, 255, 255),
-    darkcolor     => Imager::Color->new(0, 0, 0),
-);
-my $image02 = $qrcode02->plot('test test test');
-ok(ref $image02 eq 'Imager', "new() with parameters");
+for my $dat ( @Tests ) {
+    my $params = $dat->{ params };
+    my $qrcode = Imager::QRCode->new(%$params);
+    my $text = encode('cp932', decode('utf8', "QRコードは(株)デンソーウェーブの登録商標です。QR Code is registered trademarks of DENSO WAVE INCORPORATED in JAPAN and other countries."));
 
-my $qrcode03 = Imager::QRCode->new({
-    size          => 2,
-    margin        => 2,
-    version       => 1,
-    level         => 'M',
-    casesensitive => 1,
-    lightcolor    => Imager::Color->new(255, 255, 255),
-    darkcolor     => Imager::Color->new(0, 0, 0),
-});
-my $image03 = $qrcode03->plot('test test test');
-ok(ref $image03 eq 'Imager', "new() with hashref parameters");
-
-eval { my $image04 = $qrcode03->plot() };
-like($@, qr/^Not enough arguments for plot\(\)/, "plot() must need argument");
-
-eval { my $image04 = $qrcode03->_imager() };
-like($@, qr/_imager\(\) argument must be Imager::ImgRaw/, "_imager() argument check");
-
+    eval { $qrcode->plot($text) };
+    like $@, $dat->{ result }, 'plot successful';
+}
